@@ -1,0 +1,70 @@
+stages:
+  - deploy
+
+deploy-test:
+  stage: deploy
+  tags:
+    - beemabox-runner-01
+  only:
+    - test # Trigger deployment only for the `test` branch
+  script:
+    - echo "Deploying to test environment..."
+    - cd /home/ubuntu/test-server/client/beemabox-website || exit 1
+    - echo "Pulling the latest changes for test branch..."
+    - git reset --hard
+    - git checkout test
+    - git pull origin test
+    # - echo "Ensuring NEXT_PUBLIC_BASE_URL is set..."
+    # - |
+    #   if ! grep -q "^NEXT_PUBLIC_BASE_URL=" .env; then
+    #       echo "NEXT_PUBLIC_BASE_URL=https://test-admin-beemabox.celloscope.net/api/" >> .env;
+    #   else
+    #       value=$(grep "^NEXT_PUBLIC_BASE_URL=" .env | cut -d '=' -f2);
+    #       if [ "$value" != "https://test-admin-beemabox.celloscope.net/api/" ]; then
+    #           echo "ERROR: NEXT_PUBLIC_BASE_URL is not set to the required value. Exiting...";
+    #           exit 1;
+    #       fi;
+    #   fi
+    - echo "Installing dependencies..."
+    - npm install
+    - echo "Building the production application..."
+    - npm run build
+    - echo "Restarting the test application..."
+    - sudo pm2 restart web-test
+    - sudo pm2 save
+    - echo "Test deployment completed successfully!"
+
+deploy-prod:
+  stage: deploy
+  tags:
+    - beemabox-runner-01
+  only:
+    - prod # Trigger deployment only for the `prod` branch
+  script:
+    - echo "Deploying to production environment..."
+    - cd /home/ubuntu/client/beemabox-website || exit 1
+    - echo "Pulling the latest changes for prod branch..."
+    - git reset --hard
+    - git checkout prod
+    - git pull origin prod
+    # - echo "Ensuring NEXT_PUBLIC_BASE_URL is set..."
+    # - |
+    #   if ! grep -q "^NEXT_PUBLIC_BASE_URL=" .env; then
+    #       echo "NEXT_PUBLIC_BASE_URL=https://bb-admin.beemabox.celloscope.net/api/" >> .env;
+    #   else
+    #       value=$(grep "^NEXT_PUBLIC_BASE_URL=" .env | cut -d '=' -f2);
+    #       if [ "$value" != "https://bb-admin.beemabox.celloscope.net/api/" ]; then
+    #           echo "ERROR: NEXT_PUBLIC_BASE_URL is not set to the required value. Exiting...";
+    #           exit 1;
+    #       fi;
+    #   fi
+    - echo "Installing dependencies..."
+    - npm install
+    - echo "Building the production application..."
+    - npm run build
+    - echo "Restarting the production application..."
+    # - sudo pm2 restart admin
+    - sudo pm2 list
+    - sudo pm2 restart web
+    - sudo pm2 save
+    - echo "Production deployment completed successfully!"
